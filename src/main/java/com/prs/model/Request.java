@@ -115,6 +115,14 @@ public class Request {
 	public void setReasonForRejection(String reasonForRejection) {
 		this.reasonForRejection = reasonForRejection;
 	}
+
+	@Override
+	public String toString() {
+		return "Request [id=" + id + ", user=" + user + ", requestNumber=" + requestNumber + ", description="
+				+ description + ", justification=" + justification + ", dateNeeded=" + dateNeeded + ", deliveryMode="
+				+ deliveryMode + ", status=" + status + ", total=" + total + ", submittedDate=" + submittedDate
+				+ ", reasonForRejection=" + reasonForRejection + "]";
+	}
 	
 	
 	

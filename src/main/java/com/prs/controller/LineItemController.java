@@ -18,7 +18,7 @@ import jakarta.transaction.Transactional;
 
 @CrossOrigin
 @RestController
-@RequestMapping("/api/lineitems")
+@RequestMapping("/api/line-items")
 public class LineItemController {
 
 	@Autowired
@@ -44,12 +44,20 @@ public class LineItemController {
 
 	@PostMapping("")
 	@Transactional
-	public LineItem add(@RequestBody LineItem li) {
-		LineItem savedLi = lineItemRepo.save(li);
-		recalculateTotal(li.getRequest().getId());
-		return savedLi;
+	public Request add(@RequestBody LineItem li) {
+	    System.out.println("LineItemController.add() called: " + li.toString());
+	    
+	    // Save line item
+	    lineItemRepo.saveAndFlush(li);  // 🔥 Forces immediate DB flush
+	    
+	    // Now fetch updated request total
+	    recalculateTotal(li.getRequest().getId());
+	    
+	    // Return updated request
+	    return reqRepo.findById(li.getRequest().getId()).get();
 	}
 
+	
 	@PutMapping("/{id}")
 	@Transactional
 	public void update(@PathVariable int id, @RequestBody LineItem li) {
@@ -95,10 +103,9 @@ public class LineItemController {
 	
 	@Transactional
 	public void recalculateTotal(int reqId) {
-	    Request request = reqRepo.findById(reqId).orElse(null);
-	    if (request == null) {
-	        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found by id " + reqId);
-	    }
+	    // Always fetch a fresh request from DB
+	    Request freshRequest = reqRepo.findById(reqId)
+	        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found by id " + reqId));
 
 	    List<LineItem> lineItems = lineItemRepo.findByRequestId(reqId);
 	    double sum = 0;
@@ -110,7 +117,8 @@ public class LineItemController {
 	        sum += lineItem.getProduct().getPrice() * lineItem.getQuantity();
 	    }
 
-	    request.setTotal(sum);
-	    reqRepo.save(request);
+	    freshRequest.setTotal(sum);
+	    reqRepo.save(freshRequest);
 	}
 }
+

@@ -50,7 +50,7 @@ public class RequestController {
 		r.setStatus("NEW");
 		r.setSubmittedDate(LocalDateTime.now());
 		r.setTotal(0.0);
-		r.setRequestNumber(generateRequestNumber());
+		r.setRequestNumber(generateNextRequestNumber());
 		r.setDateNeeded(rc.getDateNeeded());
 		r.setDescription(rc.getDescription());
 		r.setJustification(rc.getJustification());
@@ -81,24 +81,24 @@ public class RequestController {
 
 	// ONTO CUSTOM ACTIONS BEYONG CRUD
 
-	private String generateRequestNumber() {
-		// Get today's date as YYYYMMDD
-		String datePart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+	public String generateNextRequestNumber() {
+	    Optional<String> latestOpt = reqRep.findTopRequestNumberCustomMethod();
+	    int nextSequence = 1;
 
-		// Find the latest request that starts with today's date
-		Optional<Request> lastRequest = reqRep.findTopByRequestNumberStartingWithOrderByRequestNumberDesc(datePart);
+	    if (latestOpt.isPresent()) {
+	        String latest = latestOpt.get();
+	        if (latest.length() >= 11) { // "R" + yyMMdd + 0001 (11 chars total)
+	            String numberPart = latest.substring(7); // get the 0001 part
+	            try {
+	                nextSequence = Integer.parseInt(numberPart) + 1;
+	            } catch (NumberFormatException e) {
+	                // handle gracefully if malformed number
+	            }
+	        }
+	    }
 
-		int newSequence = 1; // Default start number
-		if (lastRequest.isPresent()) {
-			String lastRequestNumber = String.valueOf(lastRequest.get().getRequestNumber());
-			int lastSequence = Integer.parseInt(lastRequestNumber.substring(8)); // Extract last 4 digits
-			newSequence = lastSequence + 1;
-		}
-
-		// Format new sequence as a 4-digit number
-		String sequencePart = String.format("%04d", newSequence);
-
-		return datePart + sequencePart;
+	    String datePart = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
+	    return String.format("R%s%04d", datePart, nextSequence);
 	}
 
 	@PutMapping("/submit-review/{id}")
